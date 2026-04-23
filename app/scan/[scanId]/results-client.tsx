@@ -39,6 +39,7 @@ function FindingCard({ finding }: { finding: Finding }) {
   const [fixPrompt, setFixPrompt] = useState<string | null>(null);
   const [loadingPrompt, setLoadingPrompt] = useState(false);
   const [promptError, setPromptError] = useState("");
+  const [promptUpgrade, setPromptUpgrade] = useState(false);
   const cfg = SEVERITY_CONFIG[finding.severity] ?? SEVERITY_CONFIG.info;
 
   if (finding.status === "pass") {
@@ -63,6 +64,7 @@ function FindingCard({ finding }: { finding: Finding }) {
     // First click: generate via Claude Haiku
     setLoadingPrompt(true);
     setPromptError("");
+    setPromptUpgrade(false);
     try {
       const res = await fetch("/api/fix-prompt", {
         method: "POST",
@@ -79,6 +81,7 @@ function FindingCard({ finding }: { finding: Finding }) {
       const data = await res.json();
       if (!res.ok) {
         setPromptError(data.error ?? "Failed to generate fix prompt.");
+        if (data.upgrade) setPromptUpgrade(true);
         return;
       }
       setFixPrompt(data.fixPrompt);
@@ -140,7 +143,14 @@ function FindingCard({ finding }: { finding: Finding }) {
           )}
 
           {promptError && (
-            <p className="text-xs text-severity-critical mb-2">{promptError}</p>
+            <div className="mb-2">
+              <p className="text-xs text-severity-critical">{promptError}</p>
+              {promptUpgrade && (
+                <a href="/signup" className="text-xs text-primary underline mt-1 inline-block">
+                  Create free account or upgrade →
+                </a>
+              )}
+            </div>
           )}
 
           <Button

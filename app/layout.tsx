@@ -14,6 +14,9 @@ export const metadata: Metadata = {
     icon: "/Skavio.png",
     apple: "/Skavio.png",
   },
+  verification: {
+    google: "EYBN1eaYEQqCFGALQLfFhU89dpKNmvu6E0DJnVLjyIY",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
