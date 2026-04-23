@@ -4,14 +4,15 @@ import { getProfile } from "@/lib/db/profiles";
 import { getUserScanCountThisMonth } from "@/lib/db/scans";
 import { PLAN_LIMITS, PLAN_LABELS } from "@/lib/lemonsqueezy";
 import { UpgradeButton } from "@/components/upgrade-button";
+import { DeleteAccountButton } from "@/components/delete-account-button";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const provider = user.app_metadata?.provider ?? "email";
-  const providerLabel = provider === "google" ? "Google" : provider === "github" ? "GitHub" : "Email";
+  const providerRaw = user.identities?.[0]?.provider ?? user.app_metadata?.provider ?? "email";
+  const providerLabel = providerRaw === "google" ? "Google" : providerRaw === "github" ? "GitHub" : "Email";
 
   const profile = await getProfile(user.id).catch(() => null);
   const plan = profile?.plan ?? "free";
@@ -132,9 +133,7 @@ export default async function SettingsPage() {
             <p className="text-sm font-medium text-body">Delete account</p>
             <p className="text-xs text-muted mt-0.5">Permanently delete your account and all scan data.</p>
           </div>
-          <button className="h-8 px-4 text-xs font-medium border border-red-300 text-severity-critical hover:bg-red-50 transition-colors">
-            Delete
-          </button>
+          <DeleteAccountButton />
         </div>
       </div>
     </div>
