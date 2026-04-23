@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { validateUrl } from "@/lib/utils/url";
 import { runScan } from "@/lib/scanner";
 import { storeScan } from "@/lib/utils/storage";
-import { saveScan } from "@/lib/db/scans";
+import { saveScan, getUserScanCountThisMonth } from "@/lib/db/scans";
 import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/db/profiles";
+import { PLAN_LIMITS } from "@/lib/lemonsqueezy";
 
-// Simple in-memory rate limiter (per IP, 10 scans/hour)
+// Simple in-memory rate limiter (per IP, 10 scans/hour) — for anonymous users
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 10;
 const RATE_WINDOW_MS = 60 * 60 * 1000;
@@ -24,13 +26,6 @@ function checkRateLimit(ip: string): boolean {
 
 export async function POST(req: NextRequest) {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      { error: "Rate limit exceeded. Maximum 10 scans per hour per IP." },
-      { status: 429 }
-    );
-  }
 
   let body: { url?: string };
   try {
@@ -56,17 +51,39 @@ export async function POST(req: NextRequest) {
     userId = user?.id;
   } catch {}
 
+  if (userId) {
+    // Enforce monthly scan quota for logged-in users
+    const profile = await getProfile(userId).catch(() => null);
+    const plan = profile?.plan ?? "free";
+    const limit = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+    const count = await getUserScanCountThisMonth(userId).catch(() => 0);
+    if (count >= limit) {
+      return NextResponse.json(
+        {
+          error: `You've used all ${limit} scans for your ${plan} plan this month. Upgrade to scan more.`,
+          upgrade: true,
+        },
+        { status: 429 }
+      );
+    }
+  } else {
+    // Anonymous users: IP-based rate limit
+    if (!checkRateLimit(ip)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Maximum 10 scans per hour per IP." },
+        { status: 429 }
+      );
+    }
+  }
+
   try {
     const result = await runScan(validated.url);
 
-    // Always keep in-memory for fast retrieval during the session
     storeScan(result);
 
-    // Persist to Supabase (always — anonymous scans get user_id = null)
     try {
       await saveScan(result, userId);
     } catch (dbErr) {
-      // Don't fail the scan if DB write fails — in-memory fallback still works
       console.error("DB save error:", dbErr);
     }
 

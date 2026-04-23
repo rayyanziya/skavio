@@ -2,6 +2,7 @@ import { ScanInput } from "@/components/landing/scan-input";
 import { Shield, Search, FileText, Lock, Globe, Code2, Mail, Server } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { createClient } from "@/lib/supabase/server";
+import { UpgradeButton } from "@/components/upgrade-button";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -46,6 +47,7 @@ const FAQ_ITEMS = [
 export default async function HomePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
 
   return (
     <div className="min-h-screen bg-background">
@@ -189,7 +191,7 @@ export default async function HomePage() {
             {[
               {
                 name: "Free",
-                price: "$0",
+                price: "€0",
                 period: "forever",
                 features: ["3 scans / month", "Severity summary", "7-day result links", "No account needed"],
                 cta: "Start scanning",
@@ -214,7 +216,7 @@ export default async function HomePage() {
               },
               {
                 name: "Agency",
-                price: "$79",
+                price: "€79",
                 period: "/ month",
                 features: ["Unlimited scans", "Unlimited projects", "White-label PDF reports", "20 API keys", "Dedicated support"],
                 cta: "Get Agency",
@@ -241,9 +243,19 @@ export default async function HomePage() {
                     </li>
                   ))}
                 </ul>
-                <button className={`w-full h-9 text-sm font-medium border transition-colors ${tier.highlight ? "bg-primary text-white border-primary hover:bg-primary-hover" : "bg-surface text-body border-border hover:border-primary hover:text-primary"}`}>
-                  {tier.cta}
-                </button>
+                {tier.name === "Free" ? (
+                  <a href="#" className={`w-full h-9 text-sm font-medium border transition-colors flex items-center justify-center bg-surface text-body border-border hover:border-primary hover:text-primary`}>
+                    {tier.cta}
+                  </a>
+                ) : (
+                  <UpgradeButton
+                    plan={tier.name.toLowerCase()}
+                    isLoggedIn={isLoggedIn}
+                    className={`w-full h-9 text-sm font-medium border transition-colors ${tier.highlight ? "bg-primary text-white border-primary hover:bg-primary-hover" : "bg-surface text-body border-border hover:border-primary hover:text-primary"}`}
+                  >
+                    {tier.cta}
+                  </UpgradeButton>
+                )}
               </div>
             ))}
           </div>

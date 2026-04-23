@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/db/profiles";
+import { PLAN_LABELS } from "@/lib/lemonsqueezy";
 import Link from "next/link";
 import Image from "next/image";
 import { LogOut, Shield, History, Settings } from "lucide-react";
@@ -8,6 +10,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  const profile = await getProfile(user.id).catch(() => null);
+  const planLabel = PLAN_LABELS[profile?.plan ?? "free"] ?? "Free";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -37,7 +42,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="p-3 border-t border-border">
           <div className="px-3 py-2 mb-1">
             <p className="text-xs font-medium text-body truncate">{user.email}</p>
-            <p className="text-xs text-muted">Free plan</p>
+            <p className="text-xs text-muted">{planLabel} plan</p>
           </div>
           <form action="/auth/signout" method="POST">
             <button

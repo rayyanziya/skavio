@@ -43,6 +43,19 @@ export async function getUserScans(userId: string, limit = 20): Promise<ScanResu
   return (data ?? []).map(dbRowToScanResult);
 }
 
+export async function getUserScanCountThisMonth(userId: string): Promise<number> {
+  const db = createServiceRoleClient();
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+  const { count } = await db
+    .from("scans")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", startOfMonth.toISOString());
+  return count ?? 0;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function dbRowToScanResult(row: any): ScanResult {
   return {
