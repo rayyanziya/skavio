@@ -22,7 +22,7 @@ export default function TermsPage() {
         <div className="space-y-8 text-sm leading-relaxed">
           <section>
             <h2 className="text-lg font-semibold text-body mb-3">1. Acceptance</h2>
-            <p className="text-muted">By using Skavio ("the Service"), you agree to these Terms. If you do not agree, do not use the Service.</p>
+            <p className="text-muted">By using Skavio (&ldquo;the Service&rdquo;), you agree to these Terms. If you do not agree, do not use the Service.</p>
           </section>
 
           <section>
@@ -33,7 +33,7 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-body mb-3">3. No warranty</h2>
-            <p className="text-muted">Skavio is provided "as is." We do not guarantee that scans are complete, accurate, or that acting on results will eliminate all security risks. Scan results are informational only — you are responsible for your own security decisions.</p>
+            <p className="text-muted">Skavio is provided &ldquo;as is.&rdquo; We do not guarantee that scans are complete, accurate, or that acting on results will eliminate all security risks. Scan results are informational only — you are responsible for your own security decisions.</p>
           </section>
 
           <section>

@@ -13,7 +13,6 @@ function verifySignature(rawBody: string, signature: string | null, secret: stri
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
   const signature = req.headers.get("x-signature");
