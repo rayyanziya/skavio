@@ -1,6 +1,9 @@
 import { ScanInput } from "@/components/landing/scan-input";
 import { Shield, Search, FileText, Lock, Globe, Code2, Mail, Server } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
+import Image from "next/image";
 
 const CHECK_CATEGORIES = [
   { icon: Shield, title: "Security Headers", desc: "CSP, HSTS, X-Frame-Options, CORS, referrer policy, and more." },
@@ -40,46 +43,104 @@ const FAQ_ITEMS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="border-b border-border bg-surface">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-          <span className="font-bold text-body text-lg tracking-tight">
-            Sk<span className="text-primary">avio</span>
-          </span>
+          <Image src="/skavio-bgrmv.png" alt="Skavio" width={500} height={160} className="h-8 w-auto" priority />
           <div className="flex items-center gap-6 text-sm">
-            <a href="#checks" className="text-muted hover:text-body transition-colors">What we check</a>
-            <a href="#pricing" className="text-muted hover:text-body transition-colors">Pricing</a>
-            <a href="#faq" className="text-muted hover:text-body transition-colors">FAQ</a>
+            <a href="#checks" className="text-muted hover:text-body transition-colors hidden sm:block">What we check</a>
+            <a href="#pricing" className="text-muted hover:text-body transition-colors hidden sm:block">Pricing</a>
+            <a href="#faq" className="text-muted hover:text-body transition-colors hidden sm:block">FAQ</a>
+            <div className="flex items-center gap-2 ml-2">
+              {user ? (
+                <Link
+                  href="/dashboard"
+                  className="h-8 px-4 text-sm font-medium bg-primary text-white border border-primary hover:bg-primary-hover transition-colors flex items-center"
+                >
+                  Dashboard
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="h-8 px-4 text-sm font-medium text-body border border-border hover:border-primary hover:text-primary transition-colors flex items-center"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="h-8 px-4 text-sm font-medium bg-primary text-white border border-primary hover:bg-primary-hover transition-colors flex items-center"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="max-w-6xl mx-auto px-4 pt-20 pb-24 text-center">
-        <div className="inline-flex items-center gap-2 border border-primary-light bg-primary-light px-3 py-1 text-xs font-medium text-primary mb-8">
-          <Shield className="h-3.5 w-3.5" />
-          45+ passive security checks · No login required
-        </div>
-        <h1 className="text-4xl sm:text-5xl font-bold text-body mb-5 leading-tight">
-          Your app has vulnerabilities.
-          <br />
-          <span className="text-primary">Let&apos;s find them.</span>
-        </h1>
-        <p className="text-lg text-muted mb-10 max-w-xl mx-auto">
-          Paste a URL. Get a full security autopsy in 30 seconds.
-          Plain-English explanations, zero jargon.
-        </p>
+      <section className="max-w-6xl mx-auto px-4 pt-16 pb-20 overflow-hidden">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
 
-        <div className="flex justify-center mb-8">
-          <ScanInput />
-        </div>
+          {/* Left: copy + scan input */}
+          <div className="flex-1 text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 border border-primary-light bg-primary-light px-3 py-1 text-xs font-medium text-primary mb-7">
+              <Shield className="h-3.5 w-3.5" />
+              45+ passive security checks · No login required
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold text-body mb-5 leading-tight">
+              Your app has vulnerabilities.
+              <br />
+              <span className="text-primary">Let&apos;s find them.</span>
+            </h1>
+            <p className="text-lg text-muted mb-8 max-w-lg">
+              Paste a URL. Get a full security autopsy in 30 seconds.
+              Plain-English explanations, zero jargon.
+            </p>
+            <div className="flex lg:justify-start justify-center mb-5">
+              <ScanInput />
+            </div>
+            <p className="text-xs text-muted">
+              Free · No account required · Results valid for 7 days
+            </p>
+          </div>
 
-        <p className="text-xs text-muted">
-          Free · No account required · Results valid for 7 days
-        </p>
+          {/* Right: origin story screenshot */}
+          <div className="flex-1 flex flex-col items-center lg:items-end w-full max-w-md lg:max-w-none">
+            <div className="relative w-full" style={{ maxWidth: 480 }}>
+              {/* Slight tilt + shadow for depth */}
+              <div className="relative rotate-2 hover:rotate-1 transition-transform duration-500">
+                <Image
+                  src="/ss_home.png"
+                  alt="The prompt that started it all"
+                  width={860}
+                  height={200}
+                  className="w-full h-auto rounded-xl shadow-2xl"
+                  priority
+                />
+                {/* Fade to background — bottom only */}
+                <div className="absolute inset-0 rounded-xl"
+                  style={{
+                    background: "linear-gradient(to bottom, transparent 72%, rgba(249,250,251,0.65) 100%)"
+                  }}
+                />
+              </div>
+              {/* Caption */}
+              <p className="text-center text-xs text-muted mt-3 italic">
+                The prompt that started it all.
+              </p>
+            </div>
+          </div>
+
+        </div>
       </section>
 
       {/* How it works */}

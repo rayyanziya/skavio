@@ -10,6 +10,10 @@ export const metadata: Metadata = {
     description: "Paste a URL. Get a full security autopsy in 30 seconds.",
     siteName: "Skavio",
   },
+  icons: {
+    icon: "/Skavio.png",
+    apple: "/Skavio.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

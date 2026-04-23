@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronDown, ChevronUp, Copy, Check, Share2, ArrowLeft, Shield, Loader2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "high", "medium", "low", "info"];
 
@@ -195,9 +196,9 @@ export function ResultsClient({ result }: { result: ScanResult }) {
       {/* Top bar */}
       <div className="border-b border-border bg-surface sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-1.5 text-sm text-muted hover:text-body transition-colors">
+          <Link href="/" className="flex items-center gap-2 text-muted hover:opacity-80 transition-opacity">
             <ArrowLeft className="h-4 w-4" />
-            <span className="font-bold text-body">Sk<span className="text-primary">avio</span></span>
+            <Image src="/Skavio.png" alt="Skavio" width={500} height={500} className="h-8 w-auto" />
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleShare} className="gap-1.5 text-xs">

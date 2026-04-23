@@ -37,7 +37,7 @@ export async function runScan(url: URL): Promise<ScanResult> {
       method: "GET",
       timeoutMs: 10000,
       headers: {
-        "User-Agent": "Skavio-Scanner/1.0 (security-audit; +https://skavio.ai)",
+        "User-Agent": "Skavio-Scanner/1.0 (security-audit; +https://skav.io)",
       },
     });
     html = await mainResponse.text();
