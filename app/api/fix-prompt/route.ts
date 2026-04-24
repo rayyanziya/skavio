@@ -2,23 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateFixPrompt, type FindingInput } from "@/lib/ai/fix-prompt";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile, checkAndIncrementFixPrompt } from "@/lib/db/profiles";
-
-// Anonymous users: 2 per IP per day
-const anonLimitMap = new Map<string, { count: number; resetAt: number }>();
-const ANON_LIMIT = 2;
-const ANON_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-function checkAnonLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = anonLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    anonLimitMap.set(ip, { count: 1, resetAt: now + ANON_WINDOW_MS });
-    return true;
-  }
-  if (entry.count >= ANON_LIMIT) return false;
-  entry.count++;
-  return true;
-}
+import { limitFixPrompt } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   let body: Partial<FindingInput>;
@@ -35,6 +19,18 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
   }
+
+  const MAX_FIELD = 1024;
+  const cap = (v: string | undefined) => (typeof v === "string" ? v.slice(0, MAX_FIELD) : v);
+  body = {
+    ...body,
+    name: cap(body.name)!,
+    severity: cap(body.severity)!,
+    category: cap(body.category)!,
+    description: cap(body.description)!,
+    detail: cap(body.detail),
+    affectedValue: cap(body.affectedValue),
+  };
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
@@ -65,8 +61,13 @@ export async function POST(req: NextRequest) {
       );
     }
   } else {
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    if (!checkAnonLimit(ip)) {
+    const ip =
+      req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip")?.trim() ??
+      req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ??
+      "unknown";
+    const allowed = await limitFixPrompt(ip);
+    if (!allowed) {
       return NextResponse.json(
         {
           error: "You've used your 2 free AI fix prompts. Create a free account or upgrade to get more.",

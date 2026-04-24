@@ -27,7 +27,7 @@ export function ScanInput() {
         setError(data.error ?? "Scan failed. Please try again.");
         return;
       }
-      router.push(`/scan/${data.scanId}`);
+      router.push(`/scan/${data.shareToken}`);
     } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {

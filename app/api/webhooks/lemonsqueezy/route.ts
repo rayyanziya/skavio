@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { upsertProfile } from "@/lib/db/profiles";
 import { getVariantToPlan } from "@/lib/lemonsqueezy";
+import { hasSeenEvent, markEventSeen } from "@/lib/webhook-dedupe";
 
 function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
   if (!signature) return false;
@@ -19,6 +20,14 @@ export async function POST(req: NextRequest) {
 
   if (!verifySignature(rawBody, signature, process.env.LEMONSQUEEZY_WEBHOOK_SECRET!)) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  // Replay protection: dedupe by SHA-256 of the raw body over 24h.
+  // We mark as seen only after successful processing so that a transient
+  // failure + legitimate retry from LemonSqueezy still gets processed.
+  const eventHash = crypto.createHash("sha256").update(rawBody).digest("hex");
+  if (await hasSeenEvent(eventHash)) {
+    return NextResponse.json({ ok: true, duplicate: true });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,6 +50,7 @@ export async function POST(req: NextRequest) {
   const portalUrl: string | null = attrs.urls?.customer_portal ?? null;
 
   if (!userId) {
+    await markEventSeen(eventHash);
     return NextResponse.json({ ok: true });
   }
 
@@ -77,5 +87,6 @@ export async function POST(req: NextRequest) {
       break;
   }
 
+  await markEventSeen(eventHash);
   return NextResponse.json({ ok: true });
 }

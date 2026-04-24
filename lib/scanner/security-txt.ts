@@ -1,4 +1,4 @@
-import { safeGet } from "@/lib/utils/fetch";
+import { safeGet, safeText } from "@/lib/utils/fetch";
 import type { CheckResult } from "@/types";
 
 export async function checkSecurityTxt(origin: string): Promise<CheckResult[]> {
@@ -8,7 +8,7 @@ export async function checkSecurityTxt(origin: string): Promise<CheckResult[]> {
     try {
       const res = await safeGet(url, 5000);
       if (res?.ok) {
-        const text = await res.text();
+        const text = await safeText(res, 32 * 1024);
         if (text.includes("Contact:")) {
           return [{
             id: "security-txt",

@@ -15,7 +15,13 @@ function riskColor(score?: number) {
   return "critical";
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const upgraded = params.upgraded === "1";
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -33,6 +39,13 @@ export default async function DashboardPage() {
 
   return (
     <div>
+      {upgraded && (
+        <div className="border border-primary bg-primary-light px-5 py-4 mb-6">
+          <p className="text-sm font-semibold text-primary">Welcome to {planLabel}!</p>
+          <p className="text-xs text-muted mt-0.5">Your plan has been upgraded. Run your first scan below.</p>
+        </div>
+      )}
+
       <h1 className="text-xl font-bold text-body mb-1">Overview</h1>
       <p className="text-sm text-muted mb-6">Run a new scan or review recent results.</p>
 
@@ -88,7 +101,7 @@ export default async function DashboardPage() {
             {scans.map((scan) => (
               <Link
                 key={scan.id}
-                href={`/scan/${scan.id}`}
+                href={`/scan/${scan.shareToken}`}
                 className="flex items-center justify-between px-5 py-3.5 hover:bg-background transition-colors group"
               >
                 <div className="min-w-0">

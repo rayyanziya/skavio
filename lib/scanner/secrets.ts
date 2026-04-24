@@ -1,4 +1,4 @@
-import { safeGet } from "@/lib/utils/fetch";
+import { safeGet, safeText } from "@/lib/utils/fetch";
 import type { CheckResult } from "@/types";
 
 const SECRET_PATTERNS: { name: string; pattern: RegExp; severity: "critical" | "high" }[] = [
@@ -20,8 +20,7 @@ async function fetchTextContent(url: string): Promise<string> {
     if (!res || !res.ok) return "";
     const ct = res.headers.get("content-type") ?? "";
     if (!ct.includes("text") && !ct.includes("javascript") && !ct.includes("html")) return "";
-    const text = await res.text();
-    return text.slice(0, 500_000); // cap at 500KB
+    return await safeText(res, 500 * 1024); // cap at 500KB
   } catch {
     return "";
   }

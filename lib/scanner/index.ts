@@ -10,7 +10,7 @@ import { checkMixedContent } from "./mixed-content";
 import { checkSecurityTxt } from "./security-txt";
 import { checkSubdomains } from "./subdomains";
 import { calculateRiskScore, getSummary } from "./risk-score";
-import { safeFetch } from "@/lib/utils/fetch";
+import { safeFetch, safeText } from "@/lib/utils/fetch";
 import { extractDomain, normalizeUrl } from "@/lib/utils/url";
 import type { CheckResult, Finding, ScanResult } from "@/types";
 import { randomBytes } from "crypto";
@@ -40,7 +40,7 @@ export async function runScan(url: URL): Promise<ScanResult> {
         "User-Agent": "Skavio-Scanner/1.0 (security-audit; +https://skav.io)",
       },
     });
-    html = await mainResponse.text();
+    html = await safeText(mainResponse);
   } catch {
     // If the site is unreachable, return a failed scan
     return {

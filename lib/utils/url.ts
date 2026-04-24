@@ -1,18 +1,12 @@
-const BLOCKED_PATTERNS = [
-  /^localhost$/i,
-  /^127\./,
-  /^10\./,
-  /^192\.168\./,
-  /^172\.(1[6-9]|2\d|3[01])\./,
-  /^169\.254\./,
-  /^::1$/,
-  /^fc00:/i,
-  /^fe80:/i,
-  /\.local$/i,
-  /\.internal$/i,
-];
+import { isIP } from "node:net";
+import { lookup } from "node:dns/promises";
+import ipaddr from "ipaddr.js";
 
-export function validateUrl(raw: string): { ok: true; url: URL } | { ok: false; error: string } {
+const BLOCKED_HOSTNAME_SUFFIXES = [/^localhost$/i, /\.local$/i, /\.internal$/i];
+
+export type ValidatedUrl = { ok: true; url: URL } | { ok: false; error: string };
+
+export async function validateUrl(raw: string): Promise<ValidatedUrl> {
   let url: URL;
   try {
     url = new URL(raw.startsWith("http") ? raw : `https://${raw}`);
@@ -24,19 +18,54 @@ export function validateUrl(raw: string): { ok: true; url: URL } | { ok: false; 
     return { ok: false, error: "Only HTTP and HTTPS URLs are allowed." };
   }
 
-  const hostname = url.hostname;
-  for (const pattern of BLOCKED_PATTERNS) {
+  // Hostname comes out of URL parser without IPv6 brackets, but strip defensively.
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+
+  for (const pattern of BLOCKED_HOSTNAME_SUFFIXES) {
     if (pattern.test(hostname)) {
       return { ok: false, error: "Scanning private or internal hosts is not allowed." };
     }
   }
 
-  // Block raw IPs (not hostname)
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(hostname)) {
-    return { ok: false, error: "Scanning IP addresses directly is not allowed." };
+  const addresses: string[] = [];
+  if (isIP(hostname)) {
+    addresses.push(hostname);
+  } else {
+    try {
+      const results = await lookup(hostname, { all: true });
+      if (results.length === 0) {
+        return { ok: false, error: "Could not resolve hostname." };
+      }
+      addresses.push(...results.map((r) => r.address));
+    } catch {
+      return { ok: false, error: "Could not resolve hostname." };
+    }
+  }
+
+  for (const addr of addresses) {
+    if (!isPublicUnicast(addr)) {
+      return { ok: false, error: "Scanning private or internal hosts is not allowed." };
+    }
   }
 
   return { ok: true, url };
+}
+
+function isPublicUnicast(addr: string): boolean {
+  let parsed: ReturnType<typeof ipaddr.parse>;
+  try {
+    parsed = ipaddr.parse(addr);
+  } catch {
+    return false;
+  }
+
+  // Normalize IPv4-mapped IPv6 (::ffff:127.0.0.1) to its IPv4 form so .range()
+  // classifies loopback/private correctly instead of bucketing as generic IPv6.
+  if (parsed.kind() === "ipv6" && (parsed as ipaddr.IPv6).isIPv4MappedAddress()) {
+    parsed = (parsed as ipaddr.IPv6).toIPv4Address();
+  }
+
+  return parsed.range() === "unicast";
 }
 
 export function extractDomain(url: URL): string {

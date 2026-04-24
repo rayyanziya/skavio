@@ -6,26 +6,14 @@ import { saveScan, getUserScanCountThisMonth } from "@/lib/db/scans";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/db/profiles";
 import { PLAN_LIMITS } from "@/lib/lemonsqueezy";
-
-// Simple in-memory rate limiter (per IP, 10 scans/hour) — for anonymous users
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 10;
-const RATE_WINDOW_MS = 60 * 60 * 1000;
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = rateLimitMap.get(ip);
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
-    return true;
-  }
-  if (entry.count >= RATE_LIMIT) return false;
-  entry.count++;
-  return true;
-}
+import { limitScan } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip =
+    req.headers.get("x-vercel-forwarded-for")?.split(",")[0]?.trim() ??
+    req.headers.get("x-real-ip")?.trim() ??
+    req.headers.get("x-forwarded-for")?.split(",").pop()?.trim() ??
+    "unknown";
 
   let body: { url?: string };
   try {
@@ -38,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "url is required." }, { status: 400 });
   }
 
-  const validated = validateUrl(body.url.trim());
+  const validated = await validateUrl(body.url.trim());
   if (!validated.ok) {
     return NextResponse.json({ error: validated.error }, { status: 400 });
   }
@@ -67,8 +55,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } else {
-    // Anonymous users: IP-based rate limit
-    if (!checkRateLimit(ip)) {
+    // Anonymous users: IP-based rate limit (Upstash if configured, in-memory fallback)
+    const allowed = await limitScan(ip);
+    if (!allowed) {
       return NextResponse.json(
         { error: "Rate limit exceeded. Maximum 10 scans per hour per IP." },
         { status: 429 }

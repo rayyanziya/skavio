@@ -32,7 +32,7 @@ export default async function ScansPage() {
           {scans.map((scan) => (
             <Link
               key={scan.id}
-              href={`/scan/${scan.id}`}
+              href={`/scan/${scan.shareToken}`}
               className="flex items-center justify-between px-5 py-4 hover:bg-background transition-colors group"
             >
               <div className="min-w-0 flex-1">

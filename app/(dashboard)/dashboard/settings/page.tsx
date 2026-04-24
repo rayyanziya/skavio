@@ -133,7 +133,7 @@ export default async function SettingsPage() {
             <p className="text-sm font-medium text-body">Delete account</p>
             <p className="text-xs text-muted mt-0.5">Permanently delete your account and all scan data.</p>
           </div>
-          <DeleteAccountButton />
+          <DeleteAccountButton userEmail={user.email ?? ""} />
         </div>
       </div>
     </div>

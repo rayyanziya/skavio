@@ -1,4 +1,4 @@
-import { safeGet, safeHead } from "@/lib/utils/fetch";
+import { safeGet, safeHead, safeText } from "@/lib/utils/fetch";
 import type { CheckResult } from "@/types";
 
 const SENSITIVE_PATHS = [
@@ -32,7 +32,7 @@ export async function checkDisclosure(baseUrl: string): Promise<CheckResult[]> {
           let confirmedExposed = true;
           if (path === "/.git/config" || path === "/.env") {
             const getRes = await safeGet(url, 6000);
-            const text = (await getRes?.text()) ?? "";
+            const text = getRes ? await safeText(getRes, 64 * 1024) : "";
             confirmedExposed = text.length > 0 && !text.toLowerCase().includes("<!doctype html");
           }
 
@@ -56,7 +56,7 @@ export async function checkDisclosure(baseUrl: string): Promise<CheckResult[]> {
   try {
     const robotsRes = await safeGet(`${origin}/robots.txt`, 6000);
     if (robotsRes?.ok) {
-      const robotsText = await robotsRes.text();
+      const robotsText = await safeText(robotsRes, 128 * 1024);
       const sensitivePaths = robotsText.match(/Disallow:\s*(\/[^\s]+)/g);
       if (sensitivePaths && sensitivePaths.length > 3) {
         results.push({

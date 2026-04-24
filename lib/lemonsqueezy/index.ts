@@ -44,6 +44,9 @@ export async function createCheckoutUrl(
       data: {
         type: "checkouts",
         attributes: {
+          checkout_options: {
+            success_url: "https://skav.io/dashboard?upgraded=1",
+          },
           checkout_data: {
             email: userEmail,
             custom: { user_id: userId },
